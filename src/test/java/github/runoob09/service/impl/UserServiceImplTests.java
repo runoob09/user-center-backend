@@ -1,5 +1,6 @@
 package github.runoob09.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import github.runoob09.entity.User;
 import github.runoob09.entity.request.UserRegisterRequest;
 import github.runoob09.mapper.UserMapper;
@@ -10,8 +11,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import javax.servlet.http.HttpSession;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -25,13 +29,14 @@ class UserServiceImplTests {
     private UserServiceImpl userService;
 
     private UserRegisterRequest userRegisterRequest;
-
+    private MockHttpServletRequest request;
     @BeforeEach
     void setUp() {
         userRegisterRequest = new UserRegisterRequest();
         userRegisterRequest.setUserAccount("user123");
         userRegisterRequest.setUserPassword("Password1");
         userRegisterRequest.setCheckPassword("Password1");
+        request = new MockHttpServletRequest();
     }
 
     @Test
@@ -107,5 +112,65 @@ class UserServiceImplTests {
 
         verify(userMapper, times(1)).selectOne(any());
         verify(userMapper, times(1)).insert(any());
+    }
+
+    @Test
+    void testDoLogin_Success() {
+        // Arrange
+        String userAccount = "user123";
+        String userPassword = "User1234";
+        User user = new User();
+        user.setUserAccount(userAccount);
+        user.setUserPassword(userPassword);
+        when(userMapper.selectOne(any())).thenReturn(user); // 模拟 userMapper 查询
+        // Act
+        User result = userService.doLogin(userAccount, userPassword, request);
+        // Assert
+        assertNotNull(result, "The result should not be null");
+        assertNull(result.getUserPassword(), "The return user's password should be null");
+        HttpSession session = request.getSession();
+        assertEquals(user, session.getAttribute(UserServiceImpl.USER_LOGIN_STATE), "The user should be set in session");
+        verify(userMapper, times(1)).selectOne(any());
+    }
+
+    @Test
+    void testDoLogin_UserNotFound() {
+        // Arrange
+        String userAccount = "user123";
+        String userPassword = "User1234";
+        // 模拟 userMapper.selectOne 方法返回 null，表示用户不存在
+        when(userMapper.selectOne(any())).thenReturn(null);
+        // Act
+        User result = userService.doLogin(userAccount, userPassword, request);
+        // Assert
+        assertNull(result, "The result should be null when user is not found");
+        verify(userMapper, times(1)).selectOne(any());
+    }
+
+
+    @Test
+    void testDoLogin_InvalidParams() {
+        // Arrange & Act
+        User result1 = userService.doLogin("", "Valid1234", request);
+        User result2 = userService.doLogin("validUser", "", request);
+        // Assert
+        assertNull(result1,"userAccount is an blank string, result should be null");
+        assertNull(result2,"userPassword is an blank string, result should be null");
+        // 判断查询是否触发
+        verify(userMapper, times(0)).selectOne(any());
+    }
+
+    @Test
+    void testDoLogin_SpecialCharacters() {
+        // Arrange
+        String userAccount = "invalid!User";
+        String userPassword = "Invalid!1234";
+
+        // Act
+        User result = userService.doLogin(userAccount, userPassword, request);
+
+        // Assert
+        assertNull(result,"userAccount and userPassword are invalid, result should be null");
+        verify(userMapper, times(0)).selectOne(any());
     }
 }

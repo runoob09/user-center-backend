@@ -86,7 +86,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return null;
         }
         // 不能包含特殊字符
-        if (USER_ACCOUNT_CHECK.matcher(userAccount).matches() || USER_PASSWORD_CHECK.matcher(userPassword).matches()) {
+        if (!(USER_ACCOUNT_CHECK.matcher(userAccount).matches() && USER_PASSWORD_CHECK.matcher(userPassword).matches())) {
             return null;
         }
         // 从数据库中查询是否有对应的用户
@@ -95,7 +95,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .eq(User::getUserPassword, userPassword);
         User user = getOne(queryWrapper);
         if (user == null) {
-            log.error("No user found with account: {} and provided password.", userAccount);
+            log.error("No user found with account: {} with provided password.", userAccount);
             return null;
         }
         // 存储用户信息
