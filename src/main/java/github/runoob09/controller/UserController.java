@@ -1,7 +1,7 @@
 package github.runoob09.controller;
 
 import github.runoob09.entity.User;
-import github.runoob09.entity.request.UserRegisterRequest;
+import github.runoob09.request.UserRegisterRequest;
 import github.runoob09.service.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;

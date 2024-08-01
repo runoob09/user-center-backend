@@ -2,9 +2,11 @@ package github.runoob09.service;
 
 import github.runoob09.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
-import github.runoob09.entity.request.UserRegisterRequest;
+import github.runoob09.request.UserRegisterRequest;
+import github.runoob09.request.UserSearchRequest;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * @author ZJH
@@ -26,4 +28,18 @@ public interface UserService extends IService<User> {
      * @return 用户对象
      */
     User doLogin(String userAccount, String userPassword, HttpServletRequest request);
+
+    /**
+     * 用户脱敏工具类
+     * @param user 原用户对象
+     * @return 脱敏后的用户对象
+     */
+    User convertToSafeUser(User user);
+
+    /**
+     * 查询用户的服务类
+     * @param request 用户请求实体类
+     * @return 查询到的用户列表
+     */
+    List<User> searchUsers(UserSearchRequest request);
 }

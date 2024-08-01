@@ -4,15 +4,16 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.runoob09.entity.User;
-import github.runoob09.entity.request.UserRegisterRequest;
+import github.runoob09.request.UserRegisterRequest;
+import github.runoob09.request.UserSearchRequest;
 import github.runoob09.service.UserService;
 import github.runoob09.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -23,9 +24,19 @@ import java.util.regex.Pattern;
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+    /**
+     * 账户名校验
+     */
     private static final Pattern USER_ACCOUNT_CHECK = Pattern.compile("^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{4,}$");
+    /**
+     * 密码校验
+     */
     private static final Pattern USER_PASSWORD_CHECK = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])[a-zA-Z0-9]{8,}$");
+    /**
+     * md5加密混淆
+     */
     private final static String SALT = "X8s9D2Z3jK4nM6bR";
+
     public final static String USER_LOGIN_STATE = "userLoginState";
 
     /**
@@ -101,6 +112,42 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 存储用户信息
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
         // 返回用户的脱敏信息
-        return user.convertToSafeUser();
+        return convertToSafeUser(user);
+    }
+
+    /**
+     * 用户脱敏方法
+     *
+     * @param user
+     * @return
+     */
+    @Override
+    public User convertToSafeUser(User user) {
+        User safeUser = new User();
+        safeUser.setId(user.getId());
+        safeUser.setUsername(user.getUsername());
+        safeUser.setUserAccount(user.getUserAccount());
+        safeUser.setAvatarUrl(user.getAvatarUrl());
+        safeUser.setGender(user.getGender());
+        safeUser.setUserPassword(null);
+        safeUser.setPhoneNumber(user.getPhoneNumber());
+        safeUser.setEmail(user.getEmail());
+        safeUser.setUserStatus(user.getUserStatus());
+        safeUser.setIsDelete(user.getIsDelete());
+        safeUser.setUserRole(user.getUserRole());
+        safeUser.setCreateTime(user.getCreateTime());
+        safeUser.setUpdateTime(user.getUpdateTime());
+        return safeUser;
+    }
+
+    /**
+     * 查询用户的服务类
+     *
+     * @param request 用户请求实体类
+     * @return 查询到的用户列表
+     */
+    @Override
+    public List<User> searchUsers(UserSearchRequest request) {
+        return null;
     }
 }
