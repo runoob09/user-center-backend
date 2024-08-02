@@ -42,4 +42,11 @@ public interface UserService extends IService<User> {
      * @return 查询到的用户列表
      */
     List<User> searchUsers(UserSearchRequest request);
+
+    /**
+     * 删除指定id的用户
+     * @param userId 用户的唯一id
+     * @return 执行的状态
+     */
+    Boolean deleteUser(Long userId);
 }

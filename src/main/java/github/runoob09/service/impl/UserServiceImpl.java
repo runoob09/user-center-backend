@@ -3,6 +3,8 @@ package github.runoob09.service.impl;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import github.runoob09.annotation.RequireRole;
+import github.runoob09.constant.UserConstant;
 import github.runoob09.entity.User;
 import github.runoob09.request.UserRegisterRequest;
 import github.runoob09.request.UserSearchRequest;
@@ -10,11 +12,15 @@ import github.runoob09.service.UserService;
 import github.runoob09.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Role;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static github.runoob09.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * @author ZJH
@@ -36,8 +42,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * md5加密混淆
      */
     private final static String SALT = "X8s9D2Z3jK4nM6bR";
-
-    public final static String USER_LOGIN_STATE = "userLoginState";
 
     /**
      * 执行用户注册操作
@@ -143,11 +147,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     /**
      * 查询用户的服务类
      *
-     * @param request 用户请求实体类
+     * @param searchRequest 用户请求实体类
      * @return 查询到的用户列表
      */
+    @RequireRole(roles = UserConstant.Role.ADMIN)
     @Override
-    public List<User> searchUsers(UserSearchRequest request) {
-        return null;
+    public List<User> searchUsers(UserSearchRequest searchRequest) {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>();
+        if (searchRequest == null) {
+            log.error("User search request can not be null");
+            return null;
+        }
+        if (searchRequest.getUsername() != null) {
+            queryWrapper = queryWrapper.like(User::getUsername, searchRequest.getUsername());
+        }
+        List<User> userList = list(queryWrapper);
+        return userList.stream().map(this::convertToSafeUser).collect(Collectors.toList());
+    }
+
+    /**
+     * 删除指定id的用户
+     *
+     * @param userId 用户的唯一id
+     * @return 执行的状态
+     */
+    @RequireRole(roles = UserConstant.Role.ADMIN)
+    @Override
+    public Boolean deleteUser(Long userId) {
+        if (userId == null) {
+            log.error("You cannot use a null ID to delete a user, because the user ID cannot be null.");
+            return false;
+        }
+        return removeById(userId);
     }
 }

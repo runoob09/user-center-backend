@@ -1,6 +1,7 @@
 package github.runoob09.aop;
 
 import github.runoob09.annotation.RequireRole;
+import github.runoob09.constant.UserConstant;
 import github.runoob09.entity.User;
 import github.runoob09.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,7 @@ public class RequireRoleAOP {
             return false;
         }
         HttpServletRequest request = requestAttributes.getRequest();
-        User user = (User) request.getSession().getAttribute(UserServiceImpl.USER_LOGIN_STATE);
+        User user = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         if (user == null) {
             log.error("user is not login");
             return false;

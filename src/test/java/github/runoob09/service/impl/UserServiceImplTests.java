@@ -1,18 +1,26 @@
 package github.runoob09.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import github.runoob09.entity.User;
 import github.runoob09.request.UserRegisterRequest;
 import github.runoob09.mapper.UserMapper;
+import github.runoob09.request.UserSearchRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import javax.servlet.http.HttpSession;
 
+import java.util.Collections;
+import java.util.List;
+
+import static github.runoob09.constant.UserConstant.USER_LOGIN_STATE;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -20,14 +28,18 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTests {
 
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImplTests.class);
     @Mock
     private UserMapper userMapper;
 
     @InjectMocks
     private UserServiceImpl userService;
 
+
     private UserRegisterRequest userRegisterRequest;
     private MockHttpServletRequest request;
+
+    private User user;
     @BeforeEach
     void setUp() {
         userRegisterRequest = new UserRegisterRequest();
@@ -35,6 +47,13 @@ class UserServiceImplTests {
         userRegisterRequest.setUserPassword("Password1");
         userRegisterRequest.setCheckPassword("Password1");
         request = new MockHttpServletRequest();
+        // 生成一个用户
+        user = new User();
+        user.setUserAccount("testAccount");
+        user.setUserPassword("Password1");
+        user.setUserRole(0);
+        user.setUserStatus(0);
+        user.setUsername("user123");
     }
 
     @Test
@@ -127,7 +146,7 @@ class UserServiceImplTests {
         assertNotNull(result, "The result should not be null");
         assertNull(result.getUserPassword(), "The return user's password should be null");
         HttpSession session = request.getSession();
-        assertEquals(user, session.getAttribute(UserServiceImpl.USER_LOGIN_STATE), "The user should be set in session");
+        assertEquals(user, session.getAttribute(USER_LOGIN_STATE), "The user should be set in session");
         verify(userMapper, times(1)).selectOne(any());
     }
 
@@ -170,5 +189,44 @@ class UserServiceImplTests {
         // Assert
         assertNull(result,"userAccount and userPassword are invalid, result should be null");
         verify(userMapper, times(0)).selectOne(any());
+    }
+
+    /**
+     * 测试正常查询
+     */
+    @Test
+    void testSearchUsersWithNonNullRequest() {
+        UserSearchRequest searchRequest = new UserSearchRequest();
+        searchRequest.setUsername("test");
+
+        when(userMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(user));
+
+        List<User> users = userService.searchUsers(searchRequest);
+
+        assertNotNull(users);
+        assertFalse(users.isEmpty());
+        assertEquals(1, users.size());
+        assertEquals("testAccount", users.get(0).getUserAccount());
+
+        verify(userMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
+    }
+
+    @Test
+    void testSearchUsersWithNullRequest() {
+        UserSearchRequest searchRequest = null;
+
+        // Verify that the selectList method was never called due to the early return on null check
+        verify(userMapper, never()).selectList(any(LambdaQueryWrapper.class));
+    }
+
+    @Test
+    void testSearchUsersWhenMapperReturnsNoResults() {
+        UserSearchRequest searchRequest = new UserSearchRequest();
+        searchRequest.setUsername("nonexistentAccount");
+        when(userMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
+        List<User> users = userService.searchUsers(searchRequest);
+        assertNotNull(users);
+        assertTrue(users.isEmpty());
+        verify(userMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
     }
 }
