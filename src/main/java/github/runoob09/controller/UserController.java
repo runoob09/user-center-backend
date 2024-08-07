@@ -1,9 +1,11 @@
 package github.runoob09.controller;
 
 import github.runoob09.entity.User;
+import github.runoob09.request.UserLoginRequest;
 import github.runoob09.request.UserRegisterRequest;
 import github.runoob09.request.UserSearchRequest;
 import github.runoob09.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,30 +22,30 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("user")
+@Slf4j
 public class UserController {
 
-    private static final Logger log = LoggerFactory.getLogger(UserController.class);
     @Resource
     private UserService userService;
 
     /**
      * 执行用户登录操作
      *
-     * @param userAccount  用户账号
-     * @param userPassword 用户密码
+     * @param loginRequest 用户登录的请求对象
      * @param request      请求对象
      * @return 查询到的用户信息
      */
     @PostMapping("login")
-    public User userLogin(@RequestParam String userAccount, @RequestParam String userPassword, HttpServletRequest request) {
-        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+    public User userLogin(@RequestBody UserLoginRequest loginRequest, HttpServletRequest request) {
+        if (StringUtils.isAnyBlank(loginRequest.getUserAccount(), loginRequest.getUserPassword())) {
             return null;
         }
-        return userService.doLogin(userAccount, userPassword, request);
+        return userService.doLogin(loginRequest.getUserAccount(), loginRequest.getUserPassword(), request);
     }
 
     /**
      * 用户注册接口
+     *
      * @param userRegisterRequest 用户注册的请求对象
      * @return 用户的新id
      */
@@ -57,12 +59,13 @@ public class UserController {
 
     /**
      * 删除用户
+     *
      * @param id 用户id
      * @return 是否删除成功
      */
     @PostMapping("delete/{id}")
-    public Boolean deleteUser(@PathVariable("id")Long id){
-        if (id==null){
+    public Boolean deleteUser(@PathVariable("id") Long id) {
+        if (id == null) {
             log.error("user id cannot be null");
             return null;
         }
@@ -71,15 +74,26 @@ public class UserController {
 
     /**
      * 搜索用户
+     *
      * @param searchRequest 搜索用户的请求对象
      * @return 搜索到的用户列表
      */
     @GetMapping("search")
-    public List<User> searchUser(UserSearchRequest searchRequest){
-        if (searchRequest==null){
+    public List<User> searchUser(UserSearchRequest searchRequest) {
+        if (searchRequest == null) {
             log.error("search request cannot be null");
             return null;
         }
         return userService.searchUsers(searchRequest);
+    }
+
+    @GetMapping("currentUser")
+    public User currentUser(HttpServletRequest request) {
+        return userService.currentUser(request);
+    }
+
+    @GetMapping("logout")
+    public Boolean logout(HttpServletRequest request) {
+        return userService.logout(request);
     }
 }

@@ -49,4 +49,18 @@ public interface UserService extends IService<User> {
      * @return 执行的状态
      */
     Boolean deleteUser(Long userId);
+
+    /**
+     * 获取当前用户
+     * @param request 当前的请求对象
+     * @return 当前已登录的用户信息
+     */
+    User currentUser(HttpServletRequest request);
+
+    /**
+     * 用户退出登录的方法
+     * @param request 当前的请求对象
+     * @return 退出登录的状态
+     */
+    Boolean logout(HttpServletRequest request);
 }

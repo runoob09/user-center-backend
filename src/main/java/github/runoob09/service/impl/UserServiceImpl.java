@@ -12,10 +12,10 @@ import github.runoob09.service.UserService;
 import github.runoob09.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.annotation.Role;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -42,6 +42,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * md5加密混淆
      */
     private final static String SALT = "X8s9D2Z3jK4nM6bR";
+    private final UserMapper userMapper;
+
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
 
     /**
      * 执行用户注册操作
@@ -83,6 +88,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user = new User(userRegisterRequest.getUserAccount(), newPassword);
         // 存储用户
         save(user);
+        log.info("User register successful: {}", user.getUsername());
         return user.getId();
     }
 
@@ -104,10 +110,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (!(USER_ACCOUNT_CHECK.matcher(userAccount).matches() && USER_PASSWORD_CHECK.matcher(userPassword).matches())) {
             return null;
         }
+        // 对密码进行加密
+        String encryptPassword = DigestUtil.md5Hex((userPassword + "_" + SALT).getBytes());
         // 从数据库中查询是否有对应的用户
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>()
                 .eq(User::getUserAccount, userAccount)
-                .eq(User::getUserPassword, userPassword);
+                .eq(User::getUserPassword, encryptPassword);
         User user = getOne(queryWrapper);
         if (user == null) {
             log.error("No user found with account: {} with provided password.", userAccount);
@@ -116,6 +124,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 存储用户信息
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
         // 返回用户的脱敏信息
+        log.info("User login successful: {}", user.getUsername());
         return convertToSafeUser(user);
     }
 
@@ -162,6 +171,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             queryWrapper = queryWrapper.like(User::getUsername, searchRequest.getUsername());
         }
         List<User> userList = list(queryWrapper);
+        log.info("User search successful, userList length is {}, searchRequest is {} ", userList.size(), searchRequest);
         return userList.stream().map(this::convertToSafeUser).collect(Collectors.toList());
     }
 
@@ -178,6 +188,54 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.error("You cannot use a null ID to delete a user, because the user ID cannot be null.");
             return false;
         }
+        log.info("User delete successful: {}", userId);
         return removeById(userId);
+    }
+
+    /**
+     * 获取当前用户
+     *
+     * @return 当前已登录的用户信息
+     */
+    @Override
+    public User currentUser(HttpServletRequest request) {
+        if (request == null) {
+            log.error("Request can not be null");
+            return null;
+        }
+        User currentUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (currentUser == null) {
+            log.error("user is not login, cannot find currentUser!");
+            return null;
+        }
+        // 查询该用户的最新信息
+        currentUser = getById(currentUser.getId());
+        // 更新用户的信息
+        request.getSession().setAttribute(USER_LOGIN_STATE, currentUser);
+        log.info("Current user is update: {}", currentUser.getUsername());
+        return currentUser;
+    }
+
+    /**
+     * 用户退出登录的方法
+     *
+     * @param request 当前的请求对象
+     * @return 退出登录的状态
+     */
+    @Override
+    public Boolean logout(HttpServletRequest request) {
+        if (request == null) {
+            log.error("The request object used for logging out is null."); //退出登录所使用的request对象为空
+            return false;
+        }
+        HttpSession session = request.getSession();
+        if (session == null) {
+            log.error("The session used for logging out is null.");
+            return false;
+        }
+        User user = (User) session.getAttribute(USER_LOGIN_STATE);
+        session.removeAttribute(USER_LOGIN_STATE);
+        log.info("User logout successful, id is {}", user.getId());
+        return Boolean.TRUE;
     }
 }

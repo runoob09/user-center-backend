@@ -9,6 +9,6 @@ import lombok.Data;
  */
 @Data
 public class UserLoginRequest {
-    public String userAccount; // 账号
-    public String userPassword; // 密码
+    private String userAccount; // 账号
+    private String userPassword; // 密码
 }

@@ -121,5 +121,7 @@ public class User implements Serializable {
         userStatus = UserConstant.Status.ACTIVE;
         isDelete = BasicConstant.Status.ACTIVE;
         userRole = UserConstant.Role.USER;
+        // 随机生成一个username
+        username = "user_" + userAccount;
     }
 }
