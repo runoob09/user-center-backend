@@ -123,5 +123,7 @@ public class User implements Serializable {
         userRole = UserConstant.Role.USER;
         // 随机生成一个username
         username = "user_" + userAccount;
+        // 设置用户的默认头像
+        avatarUrl = "https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png";
     }
 }

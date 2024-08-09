@@ -4,6 +4,8 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.runoob09.annotation.RequireRole;
+import github.runoob09.common.exception.BusinessException;
+import github.runoob09.common.result.ResultEnum;
 import github.runoob09.constant.UserConstant;
 import github.runoob09.entity.User;
 import github.runoob09.request.UserRegisterRequest;
@@ -42,11 +44,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * md5加密混淆
      */
     private final static String SALT = "X8s9D2Z3jK4nM6bR";
-    private final UserMapper userMapper;
 
-    public UserServiceImpl(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
 
     /**
      * 执行用户注册操作
@@ -81,7 +79,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.eq(User::getUserAccount, userRegisterRequest.getUserAccount());
         User user = this.getOne(queryWrapper);
         if (user != null) {
-            return -1L;
+            throw BusinessException.of(ResultEnum.PARAM_ERROR, "用户名已存在");
         }
         // 对密码进行加密
         String newPassword = DigestUtil.md5Hex((userRegisterRequest.getUserPassword() + "_" + SALT).getBytes());
@@ -97,18 +95,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      *
      * @param userAccount  用户账号
      * @param userPassword 用户密码
-     * @param request
      * @return 用户对象
      */
     @Override
     public User doLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 检查参数不为空
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            return null;
+            throw BusinessException.of(ResultEnum.PARAM_ERROR, "用户名或密码为空");
         }
         // 不能包含特殊字符
         if (!(USER_ACCOUNT_CHECK.matcher(userAccount).matches() && USER_PASSWORD_CHECK.matcher(userPassword).matches())) {
-            return null;
+            throw BusinessException.of(ResultEnum.PARAM_ERROR, "用户名或密码不符合要求");
         }
         // 对密码进行加密
         String encryptPassword = DigestUtil.md5Hex((userPassword + "_" + SALT).getBytes());
@@ -119,7 +116,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = getOne(queryWrapper);
         if (user == null) {
             log.error("No user found with account: {} with provided password.", userAccount);
-            return null;
+            throw BusinessException.of(ResultEnum.PARAM_ERROR, "用户名或密码错误");
         }
         // 存储用户信息
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
@@ -131,8 +128,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     /**
      * 用户脱敏方法
      *
-     * @param user
-     * @return
+     * @param user 未脱敏的用户对象
+     * @return 脱敏后的用户对象
      */
     @Override
     public User convertToSafeUser(User user) {
@@ -162,13 +159,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @RequireRole(roles = UserConstant.Role.ADMIN)
     @Override
     public List<User> searchUsers(UserSearchRequest searchRequest) {
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>();
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         if (searchRequest == null) {
-            log.error("User search request can not be null");
-            return null;
+            searchRequest = new UserSearchRequest();
         }
         if (searchRequest.getUsername() != null) {
             queryWrapper = queryWrapper.like(User::getUsername, searchRequest.getUsername());
+        }
+        if (searchRequest.getUserRole() != null) {
+            queryWrapper = queryWrapper.eq(User::getUserRole, searchRequest.getUserRole());
+        }
+        if (searchRequest.getUserStatus() != null) {
+            queryWrapper = queryWrapper.eq(User::getUserStatus, searchRequest.getUserStatus());
+        }
+        if (searchRequest.getUserAccount() != null) {
+            queryWrapper = queryWrapper.like(User::getUserAccount, searchRequest.getUserAccount());
+        }
+        if (searchRequest.getGender() != null) {
+            queryWrapper = queryWrapper.eq(User::getGender, searchRequest.getGender());
         }
         List<User> userList = list(queryWrapper);
         log.info("User search successful, userList length is {}, searchRequest is {} ", userList.size(), searchRequest);
@@ -186,7 +194,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Boolean deleteUser(Long userId) {
         if (userId == null) {
             log.error("You cannot use a null ID to delete a user, because the user ID cannot be null.");
-            return false;
+            throw BusinessException.of(ResultEnum.PARAM_ERROR, "用户ID不能为空");
         }
         log.info("User delete successful: {}", userId);
         return removeById(userId);
@@ -201,12 +209,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User currentUser(HttpServletRequest request) {
         if (request == null) {
             log.error("Request can not be null");
-            return null;
+            throw BusinessException.of(ResultEnum.PARAM_ERROR, "系统不能找到请求对象");
         }
         User currentUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
         if (currentUser == null) {
             log.error("user is not login, cannot find currentUser!");
-            return null;
+            throw BusinessException.of(ResultEnum.NOT_LOGIN, "用户未登录或登录已过期");
         }
         // 查询该用户的最新信息
         currentUser = getById(currentUser.getId());
@@ -226,16 +234,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Boolean logout(HttpServletRequest request) {
         if (request == null) {
             log.error("The request object used for logging out is null."); //退出登录所使用的request对象为空
-            return false;
+            throw BusinessException.of(ResultEnum.PARAM_ERROR, "系统不能找到请求对象");
         }
         HttpSession session = request.getSession();
         if (session == null) {
             log.error("The session used for logging out is null.");
-            return false;
+            throw BusinessException.of(ResultEnum.SYSTEM_ERROR, "系统不能找到会话对象");
         }
         User user = (User) session.getAttribute(USER_LOGIN_STATE);
+        if (user == null) {
+            log.error("User session has expired.");// 用户会话已过期
+            return true;
+        }
         session.removeAttribute(USER_LOGIN_STATE);
-        log.info("User logout successful, id is {}", user.getId());
-        return Boolean.TRUE;
+        log.info("User logout successful, id is {}.", user.getId());
+        return true;
     }
 }

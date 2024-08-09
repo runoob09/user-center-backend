@@ -46,6 +46,7 @@ public class RequireRoleAOP {
                 return true;
             }
         }
+        log.error("user is not have permission, user id is{}", user.getId());
         return false;
     }
 
@@ -65,8 +66,8 @@ public class RequireRoleAOP {
         // 从注解中获取对应的数据信息
         int[] roles = annotation.roles();
         // 检查用户是否具有对应权限
-        if (!checkRole(roles)){
-            throw new SecurityException("user has not role");
+        if (!checkRole(roles)) {
+            return null;
         }
         return joinPoint.proceed();
     }
