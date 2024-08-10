@@ -12,7 +12,7 @@ public enum ResultEnum {
     SUCCESS(0, "成功"),
     PARAM_ERROR(40000, "参数错误"),
     NOT_LOGIN(40100, "用户未登录"),
-    NOT_AUTH(40101, "未授权用户"),
+    NO_AUTH(40101, "未授权用户"),
     NOT_FOUND(40400, "资源不存在"),
 
     SYSTEM_ERROR(50000, "系统错误");

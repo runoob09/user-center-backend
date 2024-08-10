@@ -1,4 +1,4 @@
-package github.runoob09.annotation;
+package github.runoob09.common.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

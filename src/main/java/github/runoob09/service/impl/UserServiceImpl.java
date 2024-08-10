@@ -3,7 +3,7 @@ package github.runoob09.service.impl;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.runoob09.annotation.RequireRole;
+import github.runoob09.common.annotation.RequireRole;
 import github.runoob09.common.exception.BusinessException;
 import github.runoob09.common.result.ResultEnum;
 import github.runoob09.constant.UserConstant;
