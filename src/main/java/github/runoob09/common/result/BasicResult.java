@@ -28,6 +28,19 @@ public class BasicResult<T> {
         this.data = data;
         this.description = "请求成功";
     }
+    /**
+     * 私有构造方法（可供成功响应的请求使用）
+     *
+     * @param code
+     * @param message
+     * @param data
+     */
+    private BasicResult(Integer code, String message, T data,String description) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
+        this.description = description;
+    }
 
     /**
      * 私有构造方法（可供失败响应的请求使用）
@@ -58,6 +71,16 @@ public class BasicResult<T> {
         return new BasicResult<>(ResultEnum.SUCCESS.getCode(), ResultEnum.SUCCESS.getMessage(), data);
     }
 
+    /**
+     * 成功响应
+     *
+     * @param data 返回数据
+     * @param <T>  响应数据类型
+     * @return 对响应数据进行包装后的结果
+     */
+    public static <T> BasicResult<T> success(T data,String description) {
+        return new BasicResult<>(ResultEnum.SUCCESS.getCode(), ResultEnum.SUCCESS.getMessage(), data,description);
+    }
     /**
      * 失败响应
      *

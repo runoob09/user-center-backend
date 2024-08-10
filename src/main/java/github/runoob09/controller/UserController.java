@@ -72,7 +72,7 @@ public class UserController {
             log.error("user id cannot be null");
             throw BusinessException.of(ResultEnum.PARAM_ERROR,"缺少要删除的用户id");
         }
-        return BasicResult.success(userService.deleteUser(id));
+        return BasicResult.success(userService.deleteUser(id),"删除成功");
     }
 
     /**
@@ -87,7 +87,7 @@ public class UserController {
             log.warn("Search request is null.");
             searchRequest = new UserSearchRequest();
         }
-        return BasicResult.success(userService.searchUsers(searchRequest));
+        return BasicResult.success(userService.searchUsers(searchRequest),"搜索成功");
     }
 
     @GetMapping("currentUser")
